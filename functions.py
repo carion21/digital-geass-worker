@@ -28,6 +28,10 @@ def treat_pending_orders(env_vars: dict):
                         env_vars=env_vars,
                         transaction_code=order.get("code")
                     )
+                    if not rcheck.get('success'):
+                        logger.error(
+                            "Error while checking transaction {}".format(order.get("code")))
+                        continue
                     dcheck = rcheck.get("data").get("data")
                     # print(dcheck)
                     current_status = dcheck.get("status")
