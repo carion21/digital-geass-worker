@@ -158,12 +158,11 @@ def treat_not_delivered_orders(env_vars: dict):
                             order.get('date_created'), "%Y-%m-%dT%H:%M:%S.%fZ"))
 
                         # print('file_url', file_url)
-                        email_data = {
+                        email1_data = {
                             "subscriber_email": customer_email,
                             "template_id": 4,
                             "data": {
                                 "order_code": "#{}".format(order.get('code')),
-                                "order_date": "20 Octobre 2024",
                                 "order_date": order_date,
                                 "product_name": product.get('name'),
                                 "file_link": file_url
@@ -171,13 +170,13 @@ def treat_not_delivered_orders(env_vars: dict):
                             "content_type": "html"
                         }
 
-                        r_lmk_email = listmonk_send_email(
+                        r_lmk_email1 = listmonk_send_email(
                             env_vars=env_vars,
-                            data=email_data
+                            data=email1_data
                         )
 
-                        if r_lmk_email.get('success'):
-                            print('Email sent to :', customer_email)
+                        if r_lmk_email1.get('success'):
+                            print('Email sent to customer :', customer_email)
 
                             r_dts_upd_order = directus_update_order(
                                 env_vars=env_vars,
@@ -187,5 +186,49 @@ def treat_not_delivered_orders(env_vars: dict):
                                     "date_delivered": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # "%Y-%m-%dT%H:%M:%S"
                                 }
                             )
+
+                            email2_data = {
+                                "subscriber_email": "",
+                                "template_id": 5,
+                                "data": {
+                                    "tunnel_code": order.get('tunnel').get('code'),
+                                    "order_code": "{}".format(order.get('code')),
+                                    "order_date": order_date,
+                                    "total_amount": order.get('tunnel').get('price'),
+                                    "currency": "FCFA",
+                                    "customer_name": customer_name,
+                                    "dashboard_link": env_vars.get("DASHBOARD_URL"),
+                                },
+                                "content_type": "html"
+                            }
+
+                            admin_emails = env_vars.get("ADMIN_EMAILS")
+                            emails = admin_emails.split('|')
+
+                            for email in emails:
+                                subscriber_data = {
+                                    "email": email,
+                                    "name": str(email.split('@')[0]).upper(),
+                                    "status": "enabled",
+                                    "lists": [
+                                        3
+                                    ]
+                                }
+                                r_lmk_subscriber = listmonk_create_subscriber(
+                                    env_vars=env_vars,
+                                    data=subscriber_data
+                                )
+                                if r_lmk_subscriber.get('success'):
+                                    print('Email subscriber created :', email)
+                                elif not r_lmk_subscriber.get('success') and r_lmk_subscriber.get('status_code') == 409:
+                                    print(
+                                        'Email subscriber already exists :', email)
+
+                                email2_data["subscriber_email"] = email
+                                listmonk_send_email(
+                                    env_vars=env_vars,
+                                    data=email2_data
+                                )
+
     except Exception as e:
         print('Error in treat_not_delivered:', e)
