@@ -349,7 +349,7 @@ def directus_list_abandoned_orders(env_vars: dict):
     error = ""
     try:
         # Calculer la date actuelle moins un jour avec heures, minutes et secondes
-        filter_date = (datetime.now() - timedelta(days=1)
+        filter_date = (datetime.now() - timedelta(days=DAYS_TO_ABANDON_ORDER)
                        ).strftime("%Y-%m-%dT%H:%M:%S")
         print('filter_date', filter_date)
 
